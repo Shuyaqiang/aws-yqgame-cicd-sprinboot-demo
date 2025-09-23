@@ -1,0 +1,31 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo "Installing kubectl and configuring environment..."
+      - curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+      - chmod +x kubectl && mv kubectl /usr/local/bin/
+      - aws --version
+      - aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com
+  build:
+    commands:
+      - echo "Building Spring Boot application..."
+      - ./mvnw package -DskipTests
+      - echo "Building Docker image..."
+      - docker build -t $IMAGE_REPO_NAME:$CODEBUILD_START_TIME .
+      - docker tag $IMAGE_REPO_NAME:$CODEBUILD_START_TIME $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$CODEBUILD_START_TIME
+  post_build:
+    commands:
+      - echo "Pushing Docker image to Amazon ECR..."
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$CODEBUILD_START_TIME
+      - echo "Updating Kubernetes deployment YAML..."
+      - sed -i -e "s#\($AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/[^:]*:\).*#\1$CODEBUILD_START_TIME#g" yqgame-app-demo.yaml
+      - echo "Applying Kubernetes manifests..."
+      - kubectl apply -f yqgame-app-demo.yaml
+artifacts:
+  files:
+    - target/*.jar
+
