@@ -8,8 +8,7 @@ public class HelloController {
 
     @GetMapping("/hello")
     public String hello() {
-        return "Hello Brave Spring Boot World! This is new codepipeline world";
-        return "Test git push pipeline";
+        return "Hello Brave Spring Boot World! This is new codepipeline world !Test git push pipeline";
     }
 }
 
