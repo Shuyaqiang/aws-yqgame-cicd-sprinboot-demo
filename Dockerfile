@@ -1,5 +1,5 @@
 # 基础镜像：OpenJDK 17
-FROM openjdk:17-jdk-slim
+FROM public.ecr.aws/docker/library/openjdk:17-jdk-slim
 
 # 设置工作目录
 WORKDIR /app
